@@ -9,6 +9,8 @@ storage:
   directories:
     - path: /srv/harbormaster/services
     - path: /srv/harbormaster/config
+    - path: /var/lib/matchbox
+    - path: /etc/matchbox
   files:
     # Hostname
     - path: /etc/hostname
