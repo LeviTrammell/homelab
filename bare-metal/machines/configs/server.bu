@@ -1,0 +1,77 @@
+variant: fcos
+version: 1.1.0
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - $SSH_KEY
+storage:
+  files:
+    # K3S
+    - path: "/usr/local/bin/k3s"
+      contents:
+        source: https://github.com/k3s-io/k3s/releases/download/v1.26.0%2Bk3s1/k3s
+        verification:
+          hash: sha512-3ba0e4f6d4413916e802359ef6192621ad1aa911a617c3125976048e693038a3fd13c9ee72630386c0c76612531592433da092e40dbb781e6727d0fd90c27348
+      mode: 0755
+      user:
+        name: root
+      group:
+        name: root
+    # K3S Token
+    - path: /usr/local/etc/k3s/token
+      contents:
+        source: data:text/plain;charset=utf-8;base64,$K3S_TOKEN
+      mode: 0400
+      user:
+        name: root
+    - path: /etc/hostname
+      mode: 0644
+      contents:
+        inline: $HOSTNAME
+systemd:
+  units:
+    - name: settimezone.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Set local time zone
+
+        [Install]
+        WantedBy=multi-user.target
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/timedatectl set-timezone $TZ
+    - name: k3s.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Lightweight Kubernetes
+        Documentation=https://k3s.io
+        Wants=network-online.target
+        After=network-online.target
+        After=settimezone.service
+
+        [Install]
+        WantedBy=multi-user.target
+
+        [Service]
+        Type=notify
+        KillMode=process
+        Delegate=yes
+        LimitNOFILE=1048576
+        LimitNPROC=infinity
+        LimitCORE=infinity
+        TasksMax=infinity
+        TimeoutStartSec=0
+        Restart=always
+        RestartSec=5s
+        ExecStartPre=-/sbin/modprobe br_netfilter
+        ExecStartPre=-/sbin/modprobe overlay
+        ExecStart=/usr/local/bin/k3s \
+          server \
+          --disable servicelb \
+          --disable traefik \
+          --token-file=/usr/local/etc/k3s/token

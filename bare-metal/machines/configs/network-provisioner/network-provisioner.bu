@@ -1,0 +1,66 @@
+variant: fcos
+version: 1.4.0
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - $SSH_KEY
+storage:
+  directories:
+    - path: /srv/harbormaster/services
+    - path: /srv/harbormaster/config
+  files:
+    # Hostname
+    - path: /etc/hostname
+      mode: 0644
+      contents:
+        inline: $HOSTNAME
+    - path: /srv/harbormaster/config/harbormaster.yml
+      mode: 0644
+      contents:
+        inline: |
+          apps:
+            matchbox-suite:
+              url: https://gitlab.com/dnd-midnight-surprise/harbormaster-test
+              branch: main
+systemd:
+  units:
+    - name: settimezone.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Set local time zone
+
+        [Install]
+        WantedBy=multi-user.target
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/timedatectl set-timezone $TZ
+    - name: harbormaster.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Run Harbormaster
+        Wants=network.target
+        After=network-online.target
+        Wants=network-online.target
+        After=systemd-resolved.service
+        Requires=systemd-resolved.service
+        After=nss-lookup.target
+        After=podman.socket
+        Requires=podman.socket
+        StartLimitIntervalSec=60
+
+        [Service]
+        TimeoutStartSec=0
+        Restart=on-failure
+        StartLimitBurst=3
+        ExecStartPre=-/usr/bin/podman kill harbormaster
+        ExecStartPre=-/usr/bin/podman rm harbormaster
+        ExecStartPre=-/usr/bin/podman pull docker.io/stavros/harbormaster:latest
+        ExecStart=/usr/bin/podman run --security-opt label=disable -e DOCKER_HOST=unix:///run/podman/podman.sock -v /run/podman/podman.sock:/run/podman/podman.sock -v /srv/harbormaster/services:/main -v /srv/harbormaster/config:/config --name harbormaster docker.io/stavros/harbormaster:latest
+
+        [Install]
+        WantedBy=multi-user.target

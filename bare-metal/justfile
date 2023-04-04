@@ -1,0 +1,27 @@
+docker-compose-run := 'docker compose run --rm'
+
+build-config:
+  mkdir -p ./artifacts/butane
+  {{ docker-compose-run }} config-builder ./machines.yaml ./artifacts/butane
+
+butane:
+  mkdir -p ./artifacts/ign
+  {{ docker-compose-run }} butane ./artifacts/butane ./artifacts/ign
+
+ignite:
+  just build-config
+  just butane
+   
+move target destination:
+  mv {{ target }} {{ destination }}
+
+download-image ARCH:
+  mkdir -p ./artifacts/image
+  just move `{{ docker-compose-run }} coreos-installer download --architecture {{ ARCH }} -s stable -p metal -f iso --decompress -C ./artifacts/image` ./artifacts/image/fedora-coreos-{{ ARCH }}-latest.iso
+
+install ARCH disk:
+  {{ docker-compose-run }} coreos-installer iso customize ./artifacts/image/fedora-coreos-{{ ARCH }}-latest.iso`
+
+hello:
+  output="HELLO"
+  echo `${output}`

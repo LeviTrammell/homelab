@@ -1,0 +1,6 @@
+machines:
+  - name: network-provisioner
+    envs:
+      - ./machines/envs/common.env
+      - ./machines/envs/network-provisioner/provisioner.env
+    config: ./machines/configs/network-provisioner/network-provisioner.bu

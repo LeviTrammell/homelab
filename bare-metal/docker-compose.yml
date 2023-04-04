@@ -1,0 +1,54 @@
+version: "3.9"
+services:
+  config-builder:
+    image: config-builder
+    build: ./config-builder
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/work
+  butane:
+    image: butane
+    build: ./butane
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/work
+    working_dir: /work
+  coreos-installer:
+    image: quay.io/coreos/coreos-installer
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/work
+    working_dir: /work
+        #    - ./artifacts:/out
+        #butane:
+        #  image: quay.io/coreos/butane:release
+        #  stdin_open: true
+        #  tty: true
+        #  security_opt:
+        #    - label:disable
+        #  command: --pretty --strict /out/config/agent1.bu
+        #  volumes:
+        #    - ./coreos-builder:/pwd
+        #    - ./artifacts:/out
+        #  working_dir: /pwd
+        #iso-builder:
+        #  image: coreosbuilder
+        #  build: ./coreos-builder
+        #  stdin_open: true
+        #  tty: true
+        #  security_opt:
+        #    - label:disable
+        #  volumes:
+        #    - ./artifacts/iso:/out
+        #    - ./artifacts/config:/config
+        #arm64-flash:
+        #  privileged: true
+        #  image: arm64-flash
+        #  build: ./arm64-flash
+        #  stdin_open: true # docker run -i
+        #  tty: true        # docker run -t
+        #  volumes:
+        #    - ./artifacts/config:/configs
