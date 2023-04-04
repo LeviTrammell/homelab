@@ -24,6 +24,7 @@ services:
       --log-dhcp
   matchbox:
     image:  quay.io/poseidon/matchbox:v0.10.0
+    network_mode: "host"
     volumes:
       - /var/lib/matchbox:/var/lib/matchbox:Z
       - /etc/matchbox:/etc/matchbox:Z,ro
