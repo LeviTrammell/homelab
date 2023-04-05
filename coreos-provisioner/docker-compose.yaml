@@ -5,6 +5,7 @@ services:
     network_mode: "host"
     cap_add:
       - NET_ADMIN
+      - NET_RAW
     command: >
       -d -q
       --dhcp-range=10.179.1.50,10.179.3.255
