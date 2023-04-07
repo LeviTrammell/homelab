@@ -7,7 +7,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     volumes:
-      - ./dnsmasq.conf:/etc/dnsmasq.conf:Z
+      - /srv/harbormaster/services/repos/matchbox-suite/coreos-provisioner/dnsmasq.conf:/etc/dnsmasq.conf:Z
     command: -d 
   matchbox:
     image:  quay.io/poseidon/matchbox:v0.10.0
