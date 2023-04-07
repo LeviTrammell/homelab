@@ -24,6 +24,8 @@ services:
       --dhcp-boot=tag:ipxe,http://matchbox.home.box:8080/boot.ipxe
       --address=/matchbox.home.box/10.179.1.2
       --address=/router.home.box/10.179.1.1
+      --dhcp-option=option:router,10.179.1.1
+      --dhcp-option=option:dns-server,1.1.1.1
       --server=1.1.1.1
       --server=8.8.8.8
       --log-queries
