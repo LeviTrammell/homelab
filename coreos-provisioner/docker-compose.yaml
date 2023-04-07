@@ -8,8 +8,9 @@ services:
       - NET_RAW
     command: >
       -d -q
-      --dhcp-range=10.179.1.50,10.179.3.255
-      --dhcp-host=A0:63:91:E7:C0:88,10.179.1.1,1h
+      --dhcp-range=10.179.2.1,10.179.3.254,255.255.254.0
+      --dhcp-range=10.179.1.1,static,255.255.255.0,4h
+      --dhcp-host=A0:63:91:E7:C0:88,router,10.179.1.1,4h
       --enable-tftp --tftp-root=/var/lib/tftpboot
       --dhcp-match=set:bios,option:client-arch,0
       --dhcp-boot=tag:bios,undionly.kpxe
@@ -21,9 +22,10 @@ services:
       --dhcp-boot=tag:efi64,ipxe.efi
       --dhcp-userclass=set:ipxe,iPXE
       --dhcp-boot=tag:ipxe,http://matchbox.home.box:8080/boot.ipxe
-      --dhcp-option=option:netmask,255.255.0.0
       --address=/matchbox.home.box/10.179.1.2
       --address=/router.home.box/10.179.1.1
+      --server=1.1.1.1
+      --server=8.8.8.8
       --log-queries
       --log-dhcp
   matchbox:
