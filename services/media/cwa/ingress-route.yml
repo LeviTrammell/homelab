@@ -1,0 +1,21 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: cwa
+  namespace: media
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`library.home.ima.dev`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: cwa
+          namespace: media
+          passHostHeader: true
+          port: 8083
+  tls:
+    secretName: library-home-tls-certificate

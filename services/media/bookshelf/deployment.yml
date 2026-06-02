@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookshelf
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: bookshelf
+  template:
+    metadata:
+      labels:
+        app: bookshelf
+    spec:
+      containers:
+        - name: bookshelf
+          # :softcover = Goodreads metadata variant (no API token needed)
+          image: ghcr.io/pennydreadful/bookshelf:softcover
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "US/Mountain"
+            # Public Goodreads metadata instance. Can also be changed in the UI
+            # under Settings -> Development -> Metadata Provider Source.
+            - name: METADATA_URL
+              value: "https://api.bookinfo.pro"
+          ports:
+            - name: http
+              containerPort: 8787
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            # Same download path Sonarr/Radarr use, so Bookshelf can import
+            # finished books from qBittorrent and hardlink into the library.
+            - name: media
+              mountPath: /downloads/transmission
+              subPath: downloads/transmission
+            - name: media
+              mountPath: /books
+              subPath: books
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: bookshelf-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-nfs

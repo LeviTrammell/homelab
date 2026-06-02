@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cwa
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cwa
+  template:
+    metadata:
+      labels:
+        app: cwa
+    spec:
+      containers:
+        - name: cwa
+          image: crocodilestick/calibre-web-automated:latest
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "US/Mountain"
+            # Required for NFS-backed library/ingest: switches the ingest watcher
+            # from inotify to polling (inotify is unreliable over NFS).
+            - name: NETWORK_SHARE_MODE
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 8083
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            # Calibre library (metadata.db + book files). CWA auto-creates it if
+            # the folder is empty on first run.
+            - name: media
+              mountPath: /calibre-library
+              subPath: books/library
+            # Auto-ingest folder — Shelfmark drops finished books here and CWA
+            # imports them into the library, then removes them from ingest.
+            - name: media
+              mountPath: /cwa-book-ingest
+              subPath: books/ingest
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: cwa-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-nfs

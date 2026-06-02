@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cwa-library-chown
+  namespace: media
+spec:
+  # CWA's ingest-processor runs as root (NETWORK_SHARE_MODE skips chown), so
+  # newly-imported books land root-owned and the web app (uid 1000) can't write
+  # metadata.db -> downloads/metadata edits break. Keep the library owned by 1000.
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 0
+          containers:
+            - name: chown
+              image: busybox:latest
+              command: ["chown", "-R", "1000:1000", "/calibre-library"]
+              volumeMounts:
+                - name: media
+                  mountPath: /calibre-library
+                  subPath: books/library
+          volumes:
+            - name: media
+              persistentVolumeClaim:
+                claimName: media-nfs

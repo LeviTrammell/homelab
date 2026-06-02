@@ -1,0 +1,21 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: bookshelf
+  namespace: media
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`bookshelf.home.ima.dev`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: bookshelf
+          namespace: media
+          passHostHeader: true
+          port: 8787
+  tls:
+    secretName: bookshelf-home-tls-certificate

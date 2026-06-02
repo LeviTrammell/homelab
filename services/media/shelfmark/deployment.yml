@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shelfmark
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: shelfmark
+  template:
+    metadata:
+      labels:
+        app: shelfmark
+    spec:
+      # ndots:1 so the app resolves external hosts (annas-archive.org, mirrors)
+      # without the cluster search-domain detour. Same fix used for qBittorrent.
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      containers:
+        # gluetun owns the pod network namespace; all of Shelfmark's traffic is
+        # forced through the ProtonVPN tunnel, with a kill switch if it drops.
+        # No port forwarding here — a downloader only makes outbound connections.
+        - name: gluetun
+          image: qmcgaw/gluetun:latest
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              value: "protonvpn"
+            - name: VPN_TYPE
+              value: "wireguard"
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: protonvpn-wireguard-shelfmark
+                  key: WIREGUARD_PRIVATE_KEY
+            - name: WIREGUARD_ADDRESSES
+              valueFrom:
+                secretKeyRef:
+                  name: protonvpn-wireguard-shelfmark
+                  key: WIREGUARD_ADDRESSES
+            - name: SERVER_COUNTRIES
+              value: "United States"
+            # gluetun's DNS blocks "malicious" domains by default, which catches
+            # shadow-library hosts like annas-archive.org and makes them fail to
+            # resolve. Turn it off so Shelfmark can reach its download source.
+            - name: BLOCK_MALICIOUS
+              value: "off"
+            # Allow inbound to the Shelfmark web UI and let return traffic to the
+            # cluster/LAN bypass the tunnel (k3s pod/svc CIDRs + home LAN).
+            - name: FIREWALL_INPUT_PORTS
+              value: "8084"
+            - name: FIREWALL_OUTBOUND_SUBNETS
+              value: "10.42.0.0/16,10.43.0.0/16,10.179.0.0/16"
+            - name: TZ
+              value: "US/Mountain"
+        - name: shelfmark
+          image: ghcr.io/calibrain/shelfmark:latest
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "US/Mountain"
+            - name: FLASK_PORT
+              value: "8084"
+            # Pin Anna's Archive to a single specific mirror. Direct ebook
+            # downloads land straight in INGEST_DIR (no torrent client needed).
+            - name: AA_BASE_URL
+              value: "https://annas-archive.gl"
+            - name: AA_MIRROR_URLS
+              value: "https://annas-archive.gl"
+            # Downloaded books land here; point your Calibre/CWA ingest at the
+            # same NFS folder (books/shelfmark) to auto-import.
+            - name: INGEST_DIR
+              value: "/books"
+          ports:
+            - name: http
+              containerPort: 8084
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            # Shared ingest folder: CWA watches this same NFS path
+            # (mounted there as /cwa-book-ingest) and auto-imports what lands here.
+            - name: media
+              mountPath: /books
+              subPath: books/ingest
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: shelfmark-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-nfs

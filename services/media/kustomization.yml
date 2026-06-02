@@ -1,0 +1,15 @@
+namespace: media
+
+resources:
+  - ./namespace.yml
+  - ./pvc.yml
+  - ./qbittorrent
+  - ./jackett
+  - ./sonarr
+  - ./radarr
+  - ./plex
+  - ./jellyseerr
+  - ./bookshelf
+  - ./shelfmark
+  - ./cwa
+

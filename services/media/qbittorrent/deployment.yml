@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      labels:
+        app: qbittorrent
+    spec:
+      # Kubernetes' default ndots:5 makes libtorrent's resolver try the cluster
+      # search domains first for tracker hostnames (e.g.
+      # tracker.opentrackr.org.svc.cluster.local), hit an authoritative NXDOMAIN,
+      # and give up with "Host not found" before trying the absolute name.
+      # ndots:1 makes the real name resolve first so trackers/DHT work.
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      containers:
+        # gluetun owns the pod network namespace. All of qBittorrent's traffic
+        # is forced through the WireGuard tunnel; if the VPN drops, gluetun's
+        # firewall (kill switch) blocks everything. Peers see ProtonVPN's IP,
+        # never the home public IP.
+        - name: gluetun
+          image: qmcgaw/gluetun:latest
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              value: "protonvpn"
+            - name: VPN_TYPE
+              value: "wireguard"
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: protonvpn-wireguard
+                  key: WIREGUARD_PRIVATE_KEY
+            - name: WIREGUARD_ADDRESSES
+              valueFrom:
+                secretKeyRef:
+                  name: protonvpn-wireguard
+                  key: WIREGUARD_ADDRESSES
+            # Pick exit country/region. PORT_FORWARD_ONLY ensures gluetun only
+            # selects servers that support NAT-PMP port forwarding.
+            - name: SERVER_COUNTRIES
+              value: "United States"
+            - name: VPN_PORT_FORWARDING
+              value: "on"
+            - name: VPN_PORT_FORWARDING_PROVIDER
+              value: "protonvpn"
+            - name: PORT_FORWARD_ONLY
+              value: "on"
+            # Allow inbound to the qBittorrent web UI and let return traffic to
+            # the cluster/LAN bypass the tunnel (k3s pod/svc CIDRs + home LAN).
+            - name: FIREWALL_INPUT_PORTS
+              value: "8080"
+            - name: FIREWALL_OUTBOUND_SUBNETS
+              value: "10.42.0.0/16,10.43.0.0/16,10.179.0.0/16"
+            # When the forwarded port changes, push it into qBittorrent so the
+            # listen port matches what ProtonVPN forwards. Requires qBittorrent's
+            # "Bypass authentication for clients on localhost" to be enabled.
+            - name: VPN_PORT_FORWARDING_UP_COMMAND
+              value: '/bin/sh -c "wget -qO- --post-data=''json={\"listen_port\":{{PORTS}}}'' http://127.0.0.1:8080/api/v2/app/setPreferences"'
+            - name: TZ
+              value: "America/Denver"
+          ports:
+            - name: webui
+              containerPort: 8080
+          volumeMounts:
+            - name: gluetun-tmp
+              mountPath: /tmp/gluetun
+        - name: qbittorrent
+          image: lscr.io/linuxserver/qbittorrent:latest
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "America/Denver"
+            - name: WEBUI_PORT
+              value: "8080"
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            # Mount the same NFS folder + in-container path Sonarr/Radarr use
+            # (downloads/transmission -> /downloads/transmission) so the paths
+            # qBittorrent reports match what the *arr apps see — imports and
+            # hardlinks work with no remote path mapping.
+            - name: media
+              mountPath: /downloads/transmission
+              subPath: downloads/transmission
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
+        - name: media
+          persistentVolumeClaim:
+            claimName: media-nfs
+        - name: gluetun-tmp
+          emptyDir: {}

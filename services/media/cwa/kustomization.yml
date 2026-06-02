@@ -1,0 +1,8 @@
+namespace: media
+
+resources:
+  - ./pvc.yml
+  - ./deployment.yml
+  - ./service.yml
+  - ./ingress-route.yml
+  - ./chown-cronjob.yml
