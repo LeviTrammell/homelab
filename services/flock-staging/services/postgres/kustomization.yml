@@ -1,0 +1,6 @@
+namespace: flock-staging
+resources:
+  - init-sql-configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml

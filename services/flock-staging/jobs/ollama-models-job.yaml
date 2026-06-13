@@ -1,0 +1,35 @@
+# Idempotently pull the models Flock's AI features call on the cluster Ollama
+# (services/ollama, `ai` namespace): workflow agent, prayer classifier,
+# card-OCR vision, prayer-theme embeddings.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: flock-ollama-models
+  namespace: flock-staging
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: flock-ollama-models
+    spec:
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      containers:
+        - name: pull
+          image: curlimages/curl:8.10.1
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              # Ollama streams pull errors inside a 200 response — grep the
+              # stream; "success" must appear and "error" must not.
+              for m in gemma4:latest gemma3:4b qwen3-vl:8b-instruct embeddinggemma; do
+                echo "pulling $m"
+                out=$(curl -fsS http://ollama-service.ai.svc.cluster.local/api/pull \
+                  -d "{\"name\":\"$m\"}" | tail -2)
+                echo "$out"
+                echo "$out" | grep -q '"error"' && exit 1
+                echo "$out" | grep -q success || exit 1
+              done

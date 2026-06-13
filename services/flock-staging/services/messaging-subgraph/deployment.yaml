@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-subgraph
+  namespace: flock-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: messaging-subgraph
+  template:
+    metadata:
+      labels:
+        app: messaging-subgraph
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: messaging-subgraph
+          image: registry.home.ima.dev/flock:staging
+          imagePullPolicy: Always
+          command: ["node", "apps/messaging-subgraph/dist/index.js"]
+          envFrom:
+            - configMapRef:
+                name: flock-env
+            - secretRef:
+                name: flock-secrets
+          ports:
+            - name: http
+              containerPort: 4005
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4005
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4005
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi

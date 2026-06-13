@@ -1,0 +1,81 @@
+# Single-host path routing keeps the browser, GraphQL gateway, REST API,
+# short-link redirects and the Asterisk SIP WebSocket on one origin (no CORS).
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flock
+  namespace: flock-staging
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`flock.home.ima.dev`) && PathPrefix(`/graphql`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: gateway
+          namespace: flock-staging
+          passHostHeader: true
+          port: 4000
+    - match: Host(`flock.home.ima.dev`) && PathPrefix(`/v1`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: api
+          namespace: flock-staging
+          passHostHeader: true
+          port: 3001
+    # Public short-link redirect — must stay auth/middleware-free.
+    - match: Host(`flock.home.ima.dev`) && PathPrefix(`/l/`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: links-subgraph
+          namespace: flock-staging
+          passHostHeader: true
+          port: 4006
+    # Browser softphone: SIP over WebSocket (wss) to Asterisk.
+    - match: Host(`flock.home.ima.dev`) && PathPrefix(`/ws`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: asterisk
+          namespace: flock-staging
+          passHostHeader: true
+          port: 8088
+    - match: Host(`flock.home.ima.dev`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: web
+          namespace: flock-staging
+          passHostHeader: true
+          port: 3000
+  tls:
+    secretName: flock-home-ima-dev-tls
+---
+# SMS/email/Slack/call capture inbox (apps/dev-tools) — the staging "test
+# provider" UI. LAN-only domain; the app itself has no auth.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flock-dev
+  namespace: flock-staging
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`flock-dev.home.ima.dev`)
+      kind: Rule
+      services:
+        - kind: Service
+          name: dev-tools
+          namespace: flock-staging
+          passHostHeader: true
+          port: 3100
+  tls:
+    secretName: flock-home-ima-dev-tls

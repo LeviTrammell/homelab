@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: flock-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: web
+          image: registry.home.ima.dev/flock:staging
+          imagePullPolicy: Always
+          command: ["node", "apps/web/.next/standalone/apps/web/server.js"]
+          envFrom:
+            - configMapRef:
+                name: flock-env
+            - secretRef:
+                name: flock-secrets
+          env:
+            # Next standalone server.js reads PORT/HOSTNAME at boot.
+            - name: PORT
+              value: "3000"
+            - name: HOSTNAME
+              value: 0.0.0.0
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi

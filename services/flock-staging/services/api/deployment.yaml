@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: flock-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: api
+          image: registry.home.ima.dev/flock:staging
+          imagePullPolicy: Always
+          command: ["node", "apps/api/dist/main.js"]
+          envFrom:
+            - configMapRef:
+                name: flock-env
+            - secretRef:
+                name: flock-secrets
+          ports:
+            - name: http
+              containerPort: 3001
+          readinessProbe:
+            tcpSocket:
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 3001
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi

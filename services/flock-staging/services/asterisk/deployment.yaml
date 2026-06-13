@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asterisk
+  namespace: flock-staging
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: asterisk
+  template:
+    metadata:
+      labels:
+        app: asterisk
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: asterisk
+          image: registry.home.ima.dev/flock-asterisk:staging
+          imagePullPolicy: Always
+          env:
+            # ICE host candidate the browser dials for RTP — must match the
+            # MetalLB IP pinned on the asterisk-rtp Service below.
+            - name: ASTERISK_EXTERNAL_IP
+              value: "10.179.1.180"
+          ports:
+            - name: http
+              containerPort: 8088
+          readinessProbe:
+            tcpSocket:
+              port: 8088
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8088
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi

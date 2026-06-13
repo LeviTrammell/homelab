@@ -1,0 +1,26 @@
+# Browser-facing RTP media. MetalLB L2 pool is 10.179.1.100-254; this pins an
+# IP so Asterisk can advertise it as its ICE host candidate
+# (ASTERISK_EXTERNAL_IP on the deployment must match).
+apiVersion: v1
+kind: Service
+metadata:
+  name: asterisk-rtp
+  namespace: flock-staging
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 10.179.1.180
+spec:
+  type: LoadBalancer
+  selector:
+    app: asterisk
+  ports:
+    - { name: rtp-10000, protocol: UDP, port: 10000, targetPort: 10000 }
+    - { name: rtp-10001, protocol: UDP, port: 10001, targetPort: 10001 }
+    - { name: rtp-10002, protocol: UDP, port: 10002, targetPort: 10002 }
+    - { name: rtp-10003, protocol: UDP, port: 10003, targetPort: 10003 }
+    - { name: rtp-10004, protocol: UDP, port: 10004, targetPort: 10004 }
+    - { name: rtp-10005, protocol: UDP, port: 10005, targetPort: 10005 }
+    - { name: rtp-10006, protocol: UDP, port: 10006, targetPort: 10006 }
+    - { name: rtp-10007, protocol: UDP, port: 10007, targetPort: 10007 }
+    - { name: rtp-10008, protocol: UDP, port: 10008, targetPort: 10008 }
+    - { name: rtp-10009, protocol: UDP, port: 10009, targetPort: 10009 }
+    - { name: rtp-10010, protocol: UDP, port: 10010, targetPort: 10010 }

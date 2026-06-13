@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: templates-subgraph
+  namespace: flock-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: templates-subgraph
+  template:
+    metadata:
+      labels:
+        app: templates-subgraph
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: templates-subgraph
+          image: registry.home.ima.dev/flock:staging
+          imagePullPolicy: Always
+          command: ["node", "apps/templates-subgraph/dist/index.js"]
+          envFrom:
+            - configMapRef:
+                name: flock-env
+            - secretRef:
+                name: flock-secrets
+          ports:
+            - name: http
+              containerPort: 4004
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4004
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4004
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi

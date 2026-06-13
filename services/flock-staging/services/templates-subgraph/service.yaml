@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: templates-subgraph
+  namespace: flock-staging
+spec:
+  selector:
+    app: templates-subgraph
+  ports:
+    - name: http
+      port: 4004
+      targetPort: 4004

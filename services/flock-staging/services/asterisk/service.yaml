@@ -1,0 +1,13 @@
+# In-cluster: worker ARI control + Traefik wss route (/ws).
+apiVersion: v1
+kind: Service
+metadata:
+  name: asterisk
+  namespace: flock-staging
+spec:
+  selector:
+    app: asterisk
+  ports:
+    - name: http
+      port: 8088
+      targetPort: 8088

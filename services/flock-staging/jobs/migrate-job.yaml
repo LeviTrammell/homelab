@@ -1,0 +1,30 @@
+# Drizzle push-only schema sync (pnpm db:push). Re-run on every deploy:
+# scripts/staging-deploy.sh deletes the old Job first (Jobs are immutable).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: flock-migrate
+  namespace: flock-staging
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: flock-migrate
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: regcred
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: registry.home.ima.dev/flock:staging
+          imagePullPolicy: Always
+          command: ["pnpm", "--filter", "@flock/db", "db:push"]
+          envFrom:
+            - configMapRef:
+                name: flock-env
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi

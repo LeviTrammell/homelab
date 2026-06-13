@@ -1,0 +1,58 @@
+# Shared runtime env for every Flock app pod (envFrom). Secrets (Clerk, JWT)
+# come from the flock-secrets ExternalSecret; NEXT_PUBLIC_* values are baked
+# into the web bundle at image build time (scripts/staging-deploy.sh in the
+# churchmessage repo) and only matter here for server-side reads.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flock-env
+  namespace: flock-staging
+data:
+  NODE_ENV: production
+  DATABASE_URL: postgresql://flock:flock@postgres:5432/flock
+  REDIS_URL: redis://redis:6379
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  # Staging runs entirely on the built-in simulated providers — sends are
+  # captured to Redis and rendered by dev-tools (flock-dev.home.ima.dev).
+  # The worker deployment overrides VOICE_PROVIDER=asterisk for real WebRTC.
+  SMS_PROVIDER: local
+  EMAIL_PROVIDER: local
+  COMPLIANCE_PROVIDER: local
+  TELEPHONY_PROVIDER: local
+  VOICE_PROVIDER: local
+  SLACK_PROVIDER: local
+  COMPLIANCE_LOCAL_DELAY_MS: "2000"
+  COMPLIANCE_POLL_PATTERN: "*/10 * * * * *"
+  CREDIT_ENFORCEMENT: "1"
+  APP_URL: https://flock.home.ima.dev
+  API_URL: http://api:3001
+  API_PUBLIC_URL: https://flock.home.ima.dev/v1
+  WEB_PUBLIC_URL: https://flock.home.ima.dev
+  CORS_ORIGIN: https://flock.home.ima.dev
+  GATEWAY_INTERNAL_URL: http://gateway:4000/graphql
+  CONTACTS_SUBGRAPH_URL: http://contacts-subgraph:4001/graphql
+  FLOCK_SUBGRAPH_URL: http://flock-subgraph:4002/graphql
+  GROUPS_SUBGRAPH_URL: http://groups-subgraph:4003/graphql
+  TEMPLATES_SUBGRAPH_URL: http://templates-subgraph:4004/graphql
+  MESSAGING_SUBGRAPH_URL: http://messaging-subgraph:4005/graphql
+  LINKS_SUBGRAPH_URL: http://links-subgraph:4006/graphql
+  PRAYER_SUBGRAPH_URL: http://prayer-subgraph:4007/graphql
+  SHORT_LINK_BASE_HOST: flock.home.ima.dev
+  # Cluster GPU Ollama (services/ollama, `ai` namespace).
+  OLLAMA_HOST: http://ollama-service.ai.svc.cluster.local
+  OLLAMA_URL: http://ollama-service.ai.svc.cluster.local
+  WORKFLOW_AGENT_MODEL: gemma4:latest
+  PRAYER_CLASSIFIER_MODEL: gemma3:4b
+  # nomic-embed-text + bare qwen3-vl:8b manifests EOF from registry.ollama.ai
+  # (June 2026) — these equivalents pull fine.
+  VISION_OCR_MODEL: qwen3-vl:8b-instruct
+  PRAYER_EMBED_MODEL: embeddinggemma
+  FEATURE_PRAYER_REQUESTS: "1"
+  NEXT_PUBLIC_FEATURE_PRAYER_REQUESTS: "1"
+  NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+  NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /onboarding
+  SES_FROM_EMAIL: noreply@staging.getflock.app
+  AWS_REGION: us-east-1

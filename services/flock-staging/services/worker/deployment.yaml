@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: flock-staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - name: worker
+          image: registry.home.ima.dev/flock:staging
+          imagePullPolicy: Always
+          command: ["node", "apps/worker/dist/main.js"]
+          envFrom:
+            - configMapRef:
+                name: flock-env
+            - secretRef:
+                name: flock-secrets
+          env:
+            # Real WebRTC calls through the in-cluster Asterisk simulator.
+            - name: VOICE_PROVIDER
+              value: asterisk
+            - name: ASTERISK_ARI_URL
+              value: http://asterisk:8088
+            - name: ASTERISK_ARI_USER
+              value: flock
+            - name: ASTERISK_ARI_PASSWORD
+              value: flock-dev
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi

@@ -1,0 +1,24 @@
+# Mirror of packages/db/init.sql in the churchmessage repo (runs once on a
+# fresh PGDATA via docker-entrypoint-initdb.d).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: flock-staging
+data:
+  init.sql: |
+    -- Enable required extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+    -- Create application role for RLS
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'flock_app') THEN
+        CREATE ROLE flock_app;
+      END IF;
+    END
+    $$;
+
+    GRANT ALL ON ALL TABLES IN SCHEMA public TO flock_app;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO flock_app;

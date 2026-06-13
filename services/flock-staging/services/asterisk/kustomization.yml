@@ -1,0 +1,5 @@
+namespace: flock-staging
+resources:
+  - deployment.yaml
+  - service.yaml
+  - rtp-service.yaml

@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: flock-home-ima-dev
+  namespace: flock-staging
+spec:
+  secretName: flock-home-ima-dev-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - flock.home.ima.dev
+    - flock-dev.home.ima.dev

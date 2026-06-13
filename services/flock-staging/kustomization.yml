@@ -1,0 +1,28 @@
+# Flock staging — full stack of the churchmessage monorepo.
+# Images are built/pushed by scripts/staging-deploy.sh in that repo; deploy
+# end-to-end with that script, or apply manifests only:
+#   kubectl apply -k ./flock-staging/
+namespace: flock-staging
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - certificate.yaml
+  - ingress-route.yaml
+  - jobs/migrate-job.yaml
+  - jobs/ollama-models-job.yaml
+  - ./services/postgres
+  - ./services/redis
+  - ./services/asterisk
+  - ./services/api
+  - ./services/worker
+  - ./services/web
+  - ./services/dev-tools
+  - ./services/gateway
+  - ./services/contacts-subgraph
+  - ./services/flock-subgraph
+  - ./services/groups-subgraph
+  - ./services/templates-subgraph
+  - ./services/messaging-subgraph
+  - ./services/links-subgraph
+  - ./services/prayer-subgraph
