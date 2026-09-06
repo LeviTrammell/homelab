@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  namespace: searxng
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: searxng
+  template:
+    metadata:
+      labels:
+        app: searxng
+        namespace: searxng
+    spec:
+      volumes:
+        - name: searxng-config
+          configMap:
+            name: searxng-settings
+      containers:
+        - name: searxng
+          # Pinned: an unpinned :latest with pullPolicy Always meant every restart
+          # was an unreviewed upgrade, and the July build silently returned zero
+          # Google results. Bump deliberately; tags are dated.
+          image: docker.io/searxng/searxng:2026.9.5-c7f3080aa
+          env:
+            - name: TZ
+              value: America/Denver
+            - name: INSTANCE_NAME
+              value: "loogle"
+            - name: SEARXNG_PORT
+              value: "8080"
+            - name: SEARXNG_BIND_ADDRESS
+              value: "0.0.0.0"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: searxng-config
+              mountPath: /etc/searxng/settings.yml
+              subPath: settings.yml
+          resources:
+            limits:
+              memory: "1Gi"
+            requests:
+              memory: "512Mi"
+

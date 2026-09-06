@@ -1,0 +1,8 @@
+namespace: searxng
+
+resources:
+  - ./namespace.yaml
+  - ./config.yaml
+  - ./deployment.yaml
+  - ./service.yaml
+  - ./ingress-route.yaml
