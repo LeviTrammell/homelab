@@ -1,0 +1,18 @@
+# agents-capacity is the hardware cap on how many concurrent agent Sandboxes
+# this cluster will run. The gateway pod counts against "pods", so five
+# Sandbox pods fit and the sixth is rejected. Suspended Sandboxes drop their
+# pod but keep the home PVC, which still counts against persistentvolumeclaims
+# and requests.storage.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agents-capacity
+  namespace: agents
+spec:
+  hard:
+    pods: "6"
+    requests.cpu: "6"
+    requests.memory: 12Gi
+    limits.memory: 32Gi
+    persistentvolumeclaims: "8"
+    requests.storage: 200Gi

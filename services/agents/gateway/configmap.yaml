@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-gateway-authorized-keys
+  namespace: agents
+data:
+  authorized_keys: |
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPyzb2dTJ/ND7lweuH+t9sfdig2e3ba5X57ydhSU+HCf davidltrammell@gmail.com

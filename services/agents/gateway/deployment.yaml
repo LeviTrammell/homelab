@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-gateway
+  namespace: agents
+spec:
+  replicas: 1
+  # RWO host-key volume: the old pod must release the claim before the new one mounts it.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: agent-gateway
+  template:
+    metadata:
+      labels:
+        app: agent-gateway
+    spec:
+      serviceAccountName: agent-gateway
+      # fsGroup 1000 is levi's primary GID: kubelet chowns the projected SA token to that group and widens 0600 to 0640, so the non-root SSH user can read tokenFile.
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: agent-gateway
+          image: ghcr.io/levitrammell/agent-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - name: ssh
+              containerPort: 22
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: authorized-keys
+              mountPath: /etc/agent-gateway/authorized-keys
+              readOnly: true
+            - name: hostkeys
+              mountPath: /etc/ssh/hostkeys
+          livenessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 22
+            initialDelaySeconds: 2
+            periodSeconds: 5
+      volumes:
+        - name: authorized-keys
+          configMap:
+            name: agent-gateway-authorized-keys
+        - name: hostkeys
+          persistentVolumeClaim:
+            claimName: agent-gateway-hostkeys

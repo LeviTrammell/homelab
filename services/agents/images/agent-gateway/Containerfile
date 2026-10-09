@@ -1,0 +1,41 @@
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      openssh-server \
+      bash \
+      ca-certificates \
+      curl \
+      less \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /run/sshd
+
+# kubectl v1.32.13. The published .sha256 file is the hash only.
+# The real binary lives in libexec. /usr/local/bin/kubectl is a wrapper that
+# sets GOGC=off only under qemu-user on an aarch64 host, where Go's lfstack
+# sign-extends tagged pointers and aborts (golang/go#69255). amd64 nodes keep GC.
+RUN curl -fsSL -o /tmp/kubectl "https://dl.k8s.io/release/v1.32.13/bin/linux/amd64/kubectl" \
+    && curl -fsSL -o /tmp/kubectl.sha256 "https://dl.k8s.io/release/v1.32.13/bin/linux/amd64/kubectl.sha256" \
+    && echo "$(cat /tmp/kubectl.sha256)  /tmp/kubectl" | sha256sum -c - \
+    && mkdir -p /usr/local/libexec \
+    && install -m 0755 /tmp/kubectl /usr/local/libexec/kubectl \
+    && printf '%s\n' \
+         '#!/bin/bash' \
+         'if [ "$(uname -m)" = x86_64 ] && grep -q "^CPU architecture[[:space:]]*:[[:space:]]*8$" /proc/cpuinfo; then' \
+         '  export GOGC=off' \
+         'fi' \
+         'exec /usr/local/libexec/kubectl "$@"' \
+       > /usr/local/bin/kubectl \
+    && chmod 0755 /usr/local/bin/kubectl \
+    && rm -f /tmp/kubectl /tmp/kubectl.sha256
+
+# Build context is services/agents, not this directory.
+COPY bin/agent /usr/local/bin/agent
+COPY images/agent-gateway/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod 0755 /usr/local/bin/agent /usr/local/bin/entrypoint.sh
+
+EXPOSE 22
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
