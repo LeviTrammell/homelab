@@ -13,8 +13,9 @@ fi
 if ! id levi >/dev/null 2>&1; then
   useradd --uid 1000 --gid 1000 --create-home --shell /bin/bash levi
 fi
-# Key-only SSH: lock the password so password login cannot succeed.
-passwd -l levi
+# Key-only SSH: '*' means no password can ever match. Not passwd -l: with
+# UsePAM no, sshd rejects locked accounts even for public-key logins.
+usermod -p '*' levi
 
 install -d -m 700 -o levi -g levi /home/levi/.ssh
 install -m 600 -o levi -g levi "$AUTHORIZED_KEYS_SRC" /home/levi/.ssh/authorized_keys
